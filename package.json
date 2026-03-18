@@ -1,0 +1,25 @@
+{
+  "name": "shopspace",
+  "version": "1.0.0",
+  "description": "Shopcenter center ",
+  "homepage": "https://github.com/OmarRano/shopspace#readme",
+  "bugs": {
+    "url": "https://github.com/OmarRano/shopspace/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OmarRano/shopspace.git"
+  },
+  "license": "ISC",
+  "author": "Engr Umar Ayuba Rano",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm dev"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
