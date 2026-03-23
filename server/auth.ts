@@ -1,32 +1,40 @@
-import { publicProcedure, router } from "./_core/trpc";
-import { z } from "zod";
-import { User } from "./models/User";
-import {
-  createSessionToken,
-  getSessionCookieOptions,
-  COOKIE_NAME,
-} from "./_core/auth";
-
 /**
- * Staff accounts are seeded from MongoDB (see server/mongodb.ts seedStaffAccounts).
- * These are the login credentials for all non-buyer roles.
+ * Auth tRPC router — no Manus/OAuth dependency
  *
- * Role Login Details:
- * ─────────────────────────────────────────────────────────────────
- *  Role        │ Email                      │ Password
- * ─────────────────────────────────────────────────────────────────
- *  admin       │ admin@sahadstores.com       │ Admin@123456
- *  manager     │ manager@sahadstores.com     │ Manager@123456
- *  delivery    │ delivery@sahadstores.com    │ Delivery@123456
- *  developer   │ developer@sahadstores.com   │ Developer@123456
- * ─────────────────────────────────────────────────────────────────
- *  Buyers sign up with any email + password via the buyer signup endpoint.
+ * ── Role Login Details ───────────────────────────────────────────────────────
+ *
+ *  Role        │ Email                       │ Password         │ Access
+ * ─────────────────────────────────────────────────────────────────────────────
+ *  admin       │ admin@sahadstores.com        │ Admin@123456     │ Staff Portal
+ *  manager     │ manager@sahadstores.com      │ Manager@123456   │ Staff Portal
+ *  delivery    │ delivery@sahadstores.com     │ Delivery@123456  │ Staff Portal
+ *  developer   │ developer@sahadstores.com    │ Developer@123456 │ Staff Portal
+ *  buyer       │ (self-registered)            │ (own password)   │ Shop Account
+ *  reader      │ (promoted from buyer)        │ (own password)   │ Shop Account
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * Staff accounts are seeded into MongoDB at server startup (server/mongodb.ts).
+ * Buyers register themselves. Admin can promote a buyer to "reader" (affiliate).
  */
 
+import { publicProcedure, router } from "./_core/trpc";
+import { z } from "zod";
+import bcrypt from "bcryptjs";
+import { User } from "./models/User";
+import { createSessionToken, getSessionCookieOptions, COOKIE_NAME } from "./_core/auth";
+
+// ─── Password policy ──────────────────────────────────────────────────────────
+const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/[0-9]/, "Password must contain at least one number");
+
+// ─── Router ───────────────────────────────────────────────────────────────────
 export const authRouter = router({
   /**
-   * Returns the currently authenticated user (or null).
-   * Used by the frontend to check session state on load.
+   * Returns the currently authenticated user (password hash excluded).
+   * Frontend calls this on every page load to check session state.
    */
   me: publicProcedure.query(async ({ ctx }) => {
     if (!ctx.user) return null;
@@ -35,7 +43,7 @@ export const authRouter = router({
   }),
 
   /**
-   * Logs out the current user by clearing the session cookie.
+   * Clears the session cookie, logging the user out.
    */
   logout: publicProcedure.mutation(({ ctx }) => {
     ctx.res.clearCookie(COOKIE_NAME, { path: "/" });
@@ -43,10 +51,17 @@ export const authRouter = router({
   }),
 
   /**
-   * BUYER SIGNUP
-   * Creates a new buyer account with email + password.
-   * Auto-logs in after creation.
-   * All new sign-ups are buyers by default.
+   * BUYER SIGN UP
+   * ─────────────────────────────────────────────────────────────────────────
+   * • Open to anyone — all sign-ups are assigned the "buyer" role.
+   * • Password is hashed with bcrypt (12 salt rounds) before saving.
+   * • Auto-logs in after successful registration.
+   *
+   * Validation rules:
+   *   - name        ≥ 2 chars
+   *   - email       valid format, must be unique
+   *   - password    ≥ 8 chars, 1 uppercase, 1 number
+   *   - confirmPassword must match password
    */
   signupBuyer: publicProcedure
     .input(
@@ -54,40 +69,35 @@ export const authRouter = router({
         name: z.string().min(2, "Name must be at least 2 characters"),
         email: z.string().email("Invalid email address"),
         phone: z.string().optional(),
-        password: z
-          .string()
-          .min(8, "Password must be at least 8 characters")
-          .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-          .regex(/[0-9]/, "Password must contain at least one number"),
+        password: passwordSchema,
         confirmPassword: z.string(),
       })
     )
     .mutation(async ({ input, ctx }) => {
       if (input.password !== input.confirmPassword) {
-        throw new Error("Passwords do not match");
+        throw new Error("Passwords do not match.");
       }
 
-      const existing = await User.findOne({
-        email: input.email.toLowerCase().trim(),
-      });
+      const existing = await User.findOne({ email: input.email.toLowerCase().trim() });
       if (existing) {
-        throw new Error(
-          "Email already registered. Please sign in instead."
-        );
+        throw new Error("Email already registered. Please sign in instead.");
       }
+
+      const salt = await bcrypt.genSalt(12);
+      const passwordHash = await bcrypt.hash(input.password, salt);
 
       const user = await User.create({
         name: input.name.trim(),
         email: input.email.toLowerCase().trim(),
-        passwordHash: input.password, // pre-save hook hashes this
+        passwordHash,
         phone: input.phone?.trim() || undefined,
         role: "buyer",
         isActive: true,
       });
 
+      // Auto-login after signup
       const token = await createSessionToken(user);
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.cookie(COOKIE_NAME, token, cookieOptions);
+      ctx.res.cookie(COOKIE_NAME, token, getSessionCookieOptions(ctx.req));
 
       return {
         success: true,
@@ -98,7 +108,10 @@ export const authRouter = router({
 
   /**
    * BUYER LOGIN
-   * Authenticates a buyer by email + password.
+   * ─────────────────────────────────────────────────────────────────────────
+   * • For customers (buyer) and affiliates (reader) only.
+   * • Uses generic "Invalid email or password" to prevent email enumeration.
+   * • Staff accounts are rejected here — they must use loginStaff.
    */
   loginBuyer: publicProcedure
     .input(
@@ -108,49 +121,41 @@ export const authRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      // Always fetch passwordHash explicitly (select: false in schema)
       const user = await User.findOne({
         email: input.email.toLowerCase().trim(),
       }).select("+passwordHash");
 
-      if (!user) {
-        // Generic message to avoid email enumeration
-        throw new Error("Invalid email or password.");
-      }
+      // Generic error — do NOT reveal whether the email exists
+      if (!user) throw new Error("Invalid email or password.");
 
       if (!user.isActive) {
-        throw new Error(
-          "Your account has been deactivated. Please contact support."
-        );
+        throw new Error("Your account has been deactivated. Please contact support.");
       }
 
-      if (user.role !== "buyer" && user.role !== "reader") {
-        throw new Error(
-          "Staff accounts must use the Staff Portal login."
-        );
+      // Reject staff accounts from the buyer portal
+      const buyerRoles = ["buyer", "reader"];
+      if (!buyerRoles.includes(user.role)) {
+        throw new Error("Staff accounts must use the Staff Portal login.");
       }
 
       const isValid = await user.comparePassword(input.password);
-      if (!isValid) {
-        throw new Error("Invalid email or password.");
-      }
+      if (!isValid) throw new Error("Invalid email or password.");
 
       await User.findByIdAndUpdate(user._id, { lastSignedIn: new Date() });
 
       const token = await createSessionToken(user);
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.cookie(COOKIE_NAME, token, cookieOptions);
+      ctx.res.cookie(COOKIE_NAME, token, getSessionCookieOptions(ctx.req));
 
-      return {
-        success: true,
-        message: "Welcome back!",
-        role: user.role,
-      };
+      return { success: true, message: "Welcome back!", role: user.role };
     }),
 
   /**
    * STAFF LOGIN
-   * Authenticates admin / manager / delivery / developer by email + password.
-   * Staff accounts are seeded into MongoDB at server startup.
+   * ─────────────────────────────────────────────────────────────────────────
+   * • For admin, manager, delivery, and developer roles only.
+   * • Staff accounts are seeded into MongoDB at startup.
+   * • Buyer accounts are rejected here — they must use loginBuyer.
    */
   loginStaff: publicProcedure
     .input(
@@ -164,9 +169,7 @@ export const authRouter = router({
         email: input.email.toLowerCase().trim(),
       }).select("+passwordHash");
 
-      if (!user) {
-        throw new Error("Invalid email or password.");
-      }
+      if (!user) throw new Error("Invalid email or password.");
 
       if (!user.isActive) {
         throw new Error("Account deactivated. Please contact the administrator.");
@@ -174,21 +177,16 @@ export const authRouter = router({
 
       const staffRoles = ["admin", "manager", "delivery", "developer"];
       if (!staffRoles.includes(user.role)) {
-        throw new Error(
-          "Buyer accounts must use the Shop Account login."
-        );
+        throw new Error("Buyer accounts must use the Shop Account login.");
       }
 
       const isValid = await user.comparePassword(input.password);
-      if (!isValid) {
-        throw new Error("Invalid email or password.");
-      }
+      if (!isValid) throw new Error("Invalid email or password.");
 
       await User.findByIdAndUpdate(user._id, { lastSignedIn: new Date() });
 
       const token = await createSessionToken(user);
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.cookie(COOKIE_NAME, token, cookieOptions);
+      ctx.res.cookie(COOKIE_NAME, token, getSessionCookieOptions(ctx.req));
 
       return {
         success: true,

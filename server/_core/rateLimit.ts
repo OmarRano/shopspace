@@ -1,28 +1,29 @@
-import type { Request, Response, NextFunction } from "express";
-
 /**
- * In-memory rate limiter (production-ready upgrade: replace store with Upstash Redis).
+ * In-memory rate limiter
  *
- * Upstash Redis integration (recommended for production):
- *   1. npm install @upstash/ratelimit @upstash/redis
- *   2. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env
- *   3. Replace the in-memory store below with:
+ * ── Upgrade to Upstash Redis for production ──────────────────────────────────
+ * 1. npm install @upstash/ratelimit @upstash/redis
+ * 2. Add to .env:
+ *      UPSTASH_REDIS_REST_URL=https://...upstash.io
+ *      UPSTASH_REDIS_REST_TOKEN=AX...
+ * 3. Replace createRateLimiter with:
  *      import { Ratelimit } from "@upstash/ratelimit";
  *      import { Redis } from "@upstash/redis";
- *      const ratelimit = new Ratelimit({
+ *      const limiter = new Ratelimit({
  *        redis: Redis.fromEnv(),
- *        limiter: Ratelimit.slidingWindow(10, "60 s"),
+ *        limiter: Ratelimit.slidingWindow(maxRequests, `${windowMs / 1000} s`),
+ *        prefix: keyPrefix,
  *      });
+ *      // middleware: const { success } = await limiter.limit(ip);
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 
-interface RateLimitEntry {
-  count: number;
-  resetAt: number;
-}
+import type { Request, Response, NextFunction } from "express";
 
-const store = new Map<string, RateLimitEntry>();
+interface Entry { count: number; resetAt: number; }
+const store = new Map<string, Entry>();
 
-// Clean up stale entries every 5 minutes
+// Prune stale entries every 5 minutes
 setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of store.entries()) {
@@ -36,56 +37,29 @@ function getClientIp(req: Request): string {
   return req.socket.remoteAddress ?? "unknown";
 }
 
-/**
- * Creates a rate-limit middleware.
- * @param maxRequests  Max allowed requests per window
- * @param windowMs     Window size in milliseconds
- * @param keyPrefix    Prefix to namespace different limiters
- */
-export function createRateLimiter(
-  maxRequests: number,
-  windowMs: number,
-  keyPrefix = "rl"
-) {
+export function createRateLimiter(maxRequests: number, windowMs: number, keyPrefix = "rl") {
   return (req: Request, res: Response, next: NextFunction) => {
-    const ip = getClientIp(req);
-    const key = `${keyPrefix}:${ip}`;
+    const key = `${keyPrefix}:${getClientIp(req)}`;
     const now = Date.now();
-
     let entry = store.get(key);
 
     if (!entry || now > entry.resetAt) {
-      entry = { count: 1, resetAt: now + windowMs };
-      store.set(key, entry);
+      store.set(key, { count: 1, resetAt: now + windowMs });
       return next();
     }
-
     entry.count++;
-
     if (entry.count > maxRequests) {
       const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
       res.setHeader("Retry-After", retryAfter);
-      res.setHeader("X-RateLimit-Limit", maxRequests);
-      res.setHeader("X-RateLimit-Remaining", 0);
-      return res.status(429).json({
-        error: "Too many requests. Please slow down and try again.",
-        retryAfterSeconds: retryAfter,
-      });
+      return res.status(429).json({ error: "Too many requests. Please slow down.", retryAfterSeconds: retryAfter });
     }
-
-    res.setHeader("X-RateLimit-Limit", maxRequests);
     res.setHeader("X-RateLimit-Remaining", maxRequests - entry.count);
     next();
   };
 }
 
-/**
- * Strict limiter for auth endpoints: 10 attempts per 15 minutes per IP.
- * Prevents brute-force attacks on login/signup.
- */
+/** Auth: 10 attempts per 15 min per IP */
 export const authRateLimiter = createRateLimiter(10, 15 * 60 * 1000, "auth");
 
-/**
- * General API limiter: 200 requests per minute per IP.
- */
+/** General API: 200 requests per minute per IP */
 export const apiRateLimiter = createRateLimiter(200, 60 * 1000, "api");

@@ -1,3 +1,7 @@
+/**
+ * JWT session helpers — pure self-contained auth, no external OAuth.
+ */
+
 import { SignJWT, jwtVerify } from "jose";
 import { parse as parseCookieHeader } from "cookie";
 import type { Request } from "express";
@@ -21,17 +25,13 @@ export interface SessionPayload {
   name: string;
 }
 
-/**
- * Signs a JWT session token containing userId, email, role, and name.
- * Expires in 1 year by default.
- */
+/** Signs a JWT session token for a given user. */
 export async function createSessionToken(
   user: Pick<IUser, "_id" | "email" | "role" | "name">,
   options: { expiresInMs?: number } = {}
 ): Promise<string> {
   const expiresInMs = options.expiresInMs ?? ONE_YEAR_MS;
   const expirationSeconds = Math.floor((Date.now() + expiresInMs) / 1000);
-  const secretKey = getSecretKey();
 
   return new SignJWT({
     userId: user._id.toString(),
@@ -42,48 +42,38 @@ export async function createSessionToken(
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setIssuedAt()
     .setExpirationTime(expirationSeconds)
-    .sign(secretKey);
+    .sign(getSecretKey());
 }
 
-/**
- * Verifies a JWT session token and returns the payload, or null if invalid.
- */
+/** Verifies a JWT and returns its payload, or null if invalid/expired. */
 export async function verifySessionToken(
   token: string | undefined | null
 ): Promise<SessionPayload | null> {
   if (!token) return null;
   try {
-    const secretKey = getSecretKey();
-    const { payload } = await jwtVerify(token, secretKey, { algorithms: ["HS256"] });
+    const { payload } = await jwtVerify(token, getSecretKey(), { algorithms: ["HS256"] });
     const { userId, email, role, name } = payload as Record<string, unknown>;
     if (
       typeof userId !== "string" ||
       typeof email !== "string" ||
       typeof role !== "string" ||
       typeof name !== "string"
-    ) {
-      return null;
-    }
+    ) return null;
     return { userId, email, role, name };
   } catch {
     return null;
   }
 }
 
-/**
- * Extracts the session token from cookies in an Express request.
- */
+/** Extracts the session cookie value from a request. */
 export function getSessionToken(req: Request): string | undefined {
   const cookieHeader = req.headers.cookie;
   if (!cookieHeader) return undefined;
-  const cookies = parseCookieHeader(cookieHeader);
-  return cookies[COOKIE_NAME];
+  return parseCookieHeader(cookieHeader)[COOKIE_NAME];
 }
 
-/**
- * Returns consistent cookie options for session cookies.
- */
-export function getSessionCookieOptions(req: Request) {
+/** Consistent cookie options for Set-Cookie. */
+export function getSessionCookieOptions(_req: Request) {
   const isProduction = process.env.NODE_ENV === "production";
   return {
     httpOnly: true,
