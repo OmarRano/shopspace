@@ -19,6 +19,7 @@ import Checkout from "./pages/buyer/Checkout";
 import OrderHistory from "./pages/buyer/OrderHistory";
 import OrderTracking from "./pages/buyer/OrderTracking";
 import BuyerProfile from "./pages/buyer/BuyerProfile";
+import BuyerDashboard from "./pages/buyer/BuyerDashboard";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -88,9 +89,10 @@ function Router() {
       <Route path="/products" component={ProductCatalog} />
       <Route path="/product/:id" component={ProductDetail} />
 
-      {/* Buyer routes */}
-      {user?.role === "buyer" && (
+      {/* Buyer routes - also accessible by reader/affiliate role */}
+      {(user?.role === "buyer" || user?.role === "reader") && (
         <>
+          <Route path="/buyer" component={BuyerDashboard} />
           <Route path="/cart" component={ShoppingCart} />
           <Route path="/checkout" component={Checkout} />
           <Route path="/orders" component={OrderHistory} />

@@ -1,119 +1,112 @@
+import { trpc } from "@/lib/trpc";
 import DashboardHeader from "@/components/DashboardHeader";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
-import { Link2, DollarSign, Users, TrendingUp } from "lucide-react";
+import { Link2, DollarSign, Users, TrendingUp, Copy, Share2, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 
 export default function AffiliateDashboard() {
   const [, navigate] = useLocation();
+  const { data: stats, isLoading } = trpc.affiliate.myStats.useQuery();
+  const { data: linkData } = trpc.affiliate.getReferralLink.useQuery();
+
+  const s = stats as any;
+  const totalReferrals = s?.totalReferrals ?? 0;
+  const totalEarnings = s?.totalEarnings ?? 0;
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(linkData?.url ?? "").then(() => toast.success("Link copied!"));
+  };
+
+  const shareLink = () => {
+    if (navigator.share && linkData?.url) {
+      navigator.share({ title: "Shop at Sahad Stores", url: linkData.url });
+    } else copyLink();
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <DashboardHeader
-        title="Affiliate Dashboard"
-        subtitle="Track your referrals and earnings"
-      />
+      <DashboardHeader title="Affiliate Dashboard" subtitle="Track your referrals and commissions" />
 
       <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="border-0 shadow-md">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-600">Total Referrals</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-3xl font-bold text-slate-900">342</p>
-                  <p className="text-xs text-green-600 mt-1">+24 this month</p>
+        {/* Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {[
+            { label: "Total Referrals", value: isLoading ? "—" : totalReferrals, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+            { label: "Total Earnings", value: isLoading ? "—" : `₦${totalEarnings.toLocaleString()}`, icon: DollarSign, color: "text-green-600", bg: "bg-green-50" },
+            { label: "Referral Code", value: linkData?.code ?? "—", icon: Link2, color: "text-indigo-600", bg: "bg-indigo-50" },
+            { label: "Avg per Referral", value: isLoading ? "—" : `₦${totalReferrals > 0 ? Math.round(totalEarnings / totalReferrals).toLocaleString() : 0}`, icon: TrendingUp, color: "text-purple-600", bg: "bg-purple-50" },
+          ].map(({ label, value, icon: Icon, color, bg }) => (
+            <Card key={label} className="border-0 shadow-sm">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-slate-500 mb-1">{label}</p>
+                    <p className={`text-xl font-bold ${color}`}>{value}</p>
+                  </div>
+                  <div className={`w-11 h-11 ${bg} rounded-xl flex items-center justify-center`}>
+                    <Icon className={`w-5 h-5 ${color}`} />
+                  </div>
                 </div>
-                <Users className="w-12 h-12 text-blue-500 opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-md">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-600">Active Referrals</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-3xl font-bold text-slate-900">156</p>
-                  <p className="text-xs text-slate-600 mt-1">Generating sales</p>
-                </div>
-                <Link2 className="w-12 h-12 text-green-500 opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-md">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-600">Total Earnings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-3xl font-bold text-slate-900">₦45.2K</p>
-                  <p className="text-xs text-green-600 mt-1">+₦8.5K this month</p>
-                </div>
-                <DollarSign className="w-12 h-12 text-yellow-500 opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-md">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-600">Conversion Rate</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-3xl font-bold text-slate-900">4.2%</p>
-                  <p className="text-xs text-slate-600 mt-1">Platform avg: 3.8%</p>
-                </div>
-                <TrendingUp className="w-12 h-12 text-purple-500 opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="border-0 shadow-md">
+          {/* Referral Link Card */}
+          <Card className="border-0 shadow-md bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
             <CardHeader>
-              <CardTitle>Your Referral Link</CardTitle>
-              <CardDescription>Share this link to earn commissions</CardDescription>
+              <CardTitle className="text-white flex items-center gap-2"><Link2 className="w-5 h-5" /> Your Referral Link</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-3 bg-slate-100 rounded-lg font-mono text-sm break-all">
-                https://sahadstores.com?ref=YOUR_ID_12345
+              <div className="bg-white/20 rounded-xl p-3">
+                <p className="font-mono text-sm break-all opacity-90">{linkData?.url ?? "Loading..."}</p>
               </div>
-              <Button className="w-full">Copy Link</Button>
+              <div className="flex gap-2">
+                <Button onClick={copyLink} className="flex-1 bg-white text-blue-700 hover:bg-blue-50 gap-2">
+                  <Copy className="w-4 h-4" /> Copy Link
+                </Button>
+                <Button onClick={shareLink} variant="outline" className="flex-1 border-white/30 text-white hover:bg-white/10 gap-2">
+                  <Share2 className="w-4 h-4" /> Share
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
+          {/* Quick Actions */}
           <Card className="border-0 shadow-md">
-            <CardHeader>
-              <CardTitle>Recent Earnings</CardTitle>
-              <CardDescription>Last 7 days</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
-                  <span className="text-sm text-slate-600">Monday</span>
-                  <span className="font-bold">₦1,200</span>
+            <CardHeader><CardTitle>Quick Actions</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <button onClick={() => navigate("/affiliate/referrals")}
+                className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><Link2 className="w-5 h-5 text-blue-600" /></div>
+                  <div className="text-left"><p className="font-semibold text-slate-900 text-sm">Manage Referrals</p><p className="text-xs text-slate-500">View and share your links</p></div>
                 </div>
-                <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
-                  <span className="text-sm text-slate-600">Tuesday</span>
-                  <span className="font-bold">₦1,850</span>
+                <ArrowRight className="w-4 h-4 text-slate-400" />
+              </button>
+              <button onClick={() => navigate("/affiliate/earnings")}
+                className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center"><DollarSign className="w-5 h-5 text-green-600" /></div>
+                  <div className="text-left"><p className="font-semibold text-slate-900 text-sm">Earnings History</p><p className="text-xs text-slate-500">Track your commissions</p></div>
                 </div>
-                <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
-                  <span className="text-sm text-slate-600">Wednesday</span>
-                  <span className="font-bold">₦950</span>
+                <ArrowRight className="w-4 h-4 text-slate-400" />
+              </button>
+
+              {/* Summary */}
+              <div className="mt-4 pt-4 border-t space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Total referral orders</span>
+                  <span className="font-semibold">{totalReferrals}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Commission earned</span>
+                  <span className="font-semibold text-green-600">₦{totalEarnings.toLocaleString()}</span>
                 </div>
               </div>
-              <Button onClick={() => navigate("/affiliate/earnings")} variant="outline" className="w-full mt-4">
-                View Full History
-              </Button>
             </CardContent>
           </Card>
         </div>
