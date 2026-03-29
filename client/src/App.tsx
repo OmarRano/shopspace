@@ -1,169 +1,142 @@
-import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { Route, Switch } from "wouter";
-import ErrorBoundary from "./components/ErrorBoundary";
-import { ThemeProvider } from "./contexts/ThemeContext";
-import { useAuth } from "./_core/hooks/useAuth";
-import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getLoginUrl } from "@/const";
+import { useLocation } from "wouter";
+import { ShoppingBag, TrendingUp, Users, Zap, ArrowRight, Star } from "lucide-react";
 
-// Public pages
-import Home from "./pages/Home";
-import Auth from "./pages/Auth";
-import ProductDetail from "./pages/ProductDetail";
-import NotFound from "./pages/NotFound";
+const dashboardPath: Record<string, string> = {
+  admin: "/admin",
+  manager: "/manager",
+  delivery: "/delivery",
+  reader: "/affiliate",
+  developer: "/developer",
+  buyer: "/products",
+};
 
-// Buyer pages
-import ProductCatalog from "./pages/buyer/ProductCatalog";
-import ShoppingCart from "./pages/buyer/ShoppingCart";
-import Checkout from "./pages/buyer/Checkout";
-import OrderHistory from "./pages/buyer/OrderHistory";
-import OrderTracking from "./pages/buyer/OrderTracking";
-import BuyerProfile from "./pages/buyer/BuyerProfile";
-import BuyerDashboard from "./pages/buyer/BuyerDashboard";
-
-// Admin pages
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import UserManagement from "./pages/admin/UserManagement";
-import SalesAnalytics from "./pages/admin/SalesAnalytics";
-
-// Manager pages
-import ManagerDashboard from "./pages/manager/ManagerDashboard";
-import ProductManagement from "./pages/manager/ProductManagement";
-import InventoryManagement from "./pages/manager/InventoryManagement";
-import CategoryManagement from "./pages/manager/CategoryManagement";
-
-// Delivery pages
-import DeliveryDashboard from "./pages/delivery/DeliveryDashboard";
-import DeliveryOrders from "./pages/delivery/DeliveryOrders";
-import OrderDeliveryTracking from "./pages/delivery/OrderDeliveryTracking";
-
-// Affiliate pages
-import AffiliateDashboard from "./pages/affiliate/AffiliateDashboard";
-import ReferralManagement from "./pages/affiliate/ReferralManagement";
-import EarningsHistory from "./pages/affiliate/EarningsHistory";
-
-// Developer pages
-import DeveloperDashboard from "./pages/developer/DeveloperDashboard";
-import PlatformAnalytics from "./pages/developer/PlatformAnalytics";
-
-function ProtectedRoute({ component: Component, requiredRole }: any) {
+export default function Home() {
   const { user, loading } = useAuth();
+  const [, navigate] = useLocation();
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="animate-spin w-8 h-8" />
-      </div>
-    );
-  }
+  // Redirect authenticated users to their dashboard — but don't block render
+  useEffect(() => {
+    if (!loading && user) {
+      navigate(dashboardPath[user.role] ?? "/products");
+    }
+  }, [user, loading]);
 
-  if (!user) {
-    window.location.href = '/auth';
-    return null;
-  }
-
-  if (requiredRole && user.role !== requiredRole) {
-    return <NotFound />;
-  }
-
-  return <Component />;
-}
-
-function Router() {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="animate-spin w-8 h-8" />
-      </div>
-    );
-  }
-
+  // Render the landing page immediately — don't wait for auth
   return (
-    <Switch>
-      {/* Public routes */}
-      <Route path="/" component={Home} />
-      <Route path="/auth" component={Auth} />
-      <Route path="/login" component={Auth} />
-      <Route path="/products" component={ProductCatalog} />
-      <Route path="/product/:id" component={ProductDetail} />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Navigation */}
+      <nav className="sticky top-0 z-50 border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ShoppingBag className="w-8 h-8 text-blue-600" />
+            <span className="text-2xl font-bold text-slate-900">Sahad Stores</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" asChild>
+              <a href="/auth">Sign Up</a>
+            </Button>
+            <Button asChild>
+              <a href={getLoginUrl()}>Sign In</a>
+            </Button>
+          </div>
+        </div>
+      </nav>
 
-      {/* Buyer routes - also accessible by reader/affiliate role */}
-      {(user?.role === "buyer" || user?.role === "reader") && (
-        <>
-          <Route path="/buyer" component={BuyerDashboard} />
-          <Route path="/cart" component={ShoppingCart} />
-          <Route path="/checkout" component={Checkout} />
-          <Route path="/orders" component={OrderHistory} />
-          <Route path="/order/:orderId/track" component={OrderTracking} />
-          <Route path="/profile" component={BuyerProfile} />
-        </>
-      )}
+      {/* Hero */}
+      <section className="container mx-auto px-4 py-20 text-center">
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6 leading-tight">
+            The Complete E-Commerce Platform for Modern Businesses
+          </h1>
+          <p className="text-xl text-slate-600 mb-8 leading-relaxed">
+            Manage your store, track inventory, process orders, and grow your business with our comprehensive multi-role commerce solution.
+          </p>
+          <div className="flex gap-4 justify-center flex-wrap">
+            <Button size="lg" asChild>
+              <a href={getLoginUrl()}>Get Started</a>
+            </Button>
+            <Button size="lg" variant="outline" asChild>
+              <a href="/products">Browse Products</a>
+            </Button>
+          </div>
+        </div>
+      </section>
 
-      {/* Admin routes */}
-      {user?.role === "admin" && (
-        <>
-          <Route path="/admin" component={AdminDashboard} />
-          <Route path="/admin/users" component={UserManagement} />
-          <Route path="/admin/analytics" component={SalesAnalytics} />
-        </>
-      )}
+      {/* Features */}
+      <section className="bg-white py-20">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold text-center mb-16 text-slate-900">Powerful Features for Every Role</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              { icon: ShoppingBag, color: "text-blue-600", title: "For Buyers", sub: "Seamless Shopping Experience", items: ["Browse curated product catalog", "Easy shopping cart management", "Secure checkout with Monnify", "Real-time order tracking", "Product reviews and ratings"] },
+              { icon: Zap, color: "text-amber-600", title: "For Managers", sub: "Complete Store Control", items: ["Add and manage products", "Real-time inventory tracking", "Automated pricing with commissions", "Stock alerts and adjustments", "Category management"] },
+              { icon: TrendingUp, color: "text-green-600", title: "For Delivery", sub: "Efficient Logistics", items: ["View assigned orders", "GPS tracking integration", "Status updates in real-time", "Automatic commission tracking", "Performance analytics"] },
+              { icon: Users, color: "text-purple-600", title: "For Admins", sub: "Full Platform Control", items: ["Comprehensive sales dashboard", "User management and roles", "Revenue analytics and reports", "Commission configuration", "Platform-wide settings"] },
+              { icon: Star, color: "text-yellow-600", title: "For Affiliates", sub: "Earn Through Referrals", items: ["Generate referral links", "Track conversions", "Real-time earnings dashboard", "Commission history", "Performance metrics"] },
+              { icon: Zap, color: "text-indigo-600", title: "For Developers", sub: "Platform Insights", items: ["Platform-wide analytics", "Commission distribution", "Store performance tracking", "Revenue insights", "System configuration"] },
+            ].map(({ icon: Icon, color, title, sub, items }) => (
+              <Card key={title} className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+                <CardHeader>
+                  <Icon className={`w-8 h-8 ${color} mb-2`} />
+                  <CardTitle>{title}</CardTitle>
+                  <CardDescription>{sub}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-slate-600">
+                  {items.map((item) => <p key={item}>• {item}</p>)}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
 
-      {/* Manager routes */}
-      {user?.role === "manager" && (
-        <>
-          <Route path="/manager" component={ManagerDashboard} />
-          <Route path="/manager/products" component={ProductManagement} />
-          <Route path="/manager/inventory" component={InventoryManagement} />
-          <Route path="/manager/categories" component={CategoryManagement} />
-        </>
-      )}
+      {/* Benefits */}
+      <section className="container mx-auto px-4 py-20">
+        <h2 className="text-4xl font-bold text-center mb-16 text-slate-900">Why Choose Sahad Stores?</h2>
+        <div className="grid md:grid-cols-2 gap-12">
+          {[
+            { title: "Automated Commission System", desc: "Transparent profit calculation and automatic commission distribution for all stakeholders." },
+            { title: "Real-Time Analytics", desc: "Comprehensive dashboards with live sales data, inventory tracking, and performance metrics." },
+            { title: "Multi-Role Access Control", desc: "Six distinct user roles with granular permissions and specialized dashboards." },
+            { title: "GPS Delivery Tracking", desc: "Real-time location tracking and order status updates for seamless delivery management." },
+            { title: "Secure Payment Processing", desc: "Integrated Monnify payment gateway with comprehensive transaction management." },
+            { title: "Affiliate Commission System", desc: "Track referrals, manage commissions, and grow your network with built-in affiliate tools." },
+          ].map(({ title, desc }) => (
+            <div key={title} className="flex gap-4">
+              <div className="flex-shrink-0 w-12 h-12 rounded-md bg-blue-600 text-white flex items-center justify-center">
+                <ArrowRight className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+                <p className="text-slate-600">{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
-      {/* Delivery routes */}
-      {user?.role === "delivery" && (
-        <>
-          <Route path="/delivery" component={DeliveryDashboard} />
-          <Route path="/delivery/orders" component={DeliveryOrders} />
-          <Route path="/delivery/order/:orderId/track" component={OrderDeliveryTracking} />
-        </>
-      )}
+      {/* CTA */}
+      <section className="bg-blue-600 text-white py-16">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl font-bold mb-4">Ready to Transform Your E-Commerce Business?</h2>
+          <p className="text-lg mb-8 text-blue-100">Join thousands of businesses using Sahad Stores to manage their operations efficiently.</p>
+          <Button size="lg" variant="secondary" asChild>
+            <a href={getLoginUrl()}>Sign In Now</a>
+          </Button>
+        </div>
+      </section>
 
-      {/* Affiliate routes */}
-      {user?.role === "reader" && (
-        <>
-          <Route path="/affiliate" component={AffiliateDashboard} />
-          <Route path="/affiliate/referrals" component={ReferralManagement} />
-          <Route path="/affiliate/earnings" component={EarningsHistory} />
-        </>
-      )}
-
-      {/* Developer routes */}
-      {user?.role === "developer" && (
-        <>
-          <Route path="/developer" component={DeveloperDashboard} />
-          <Route path="/developer/analytics" component={PlatformAnalytics} />
-        </>
-      )}
-
-      {/* 404 */}
-      <Route path="/404" component={NotFound} />
-      <Route component={NotFound} />
-    </Switch>
+      {/* Footer */}
+      <footer className="bg-slate-900 text-slate-400 py-8">
+        <div className="container mx-auto px-4 text-center">
+          <p>&copy; 2026 Sahad Stores. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
   );
 }
-
-function App() {
-  return (
-    <ErrorBoundary>
-      <ThemeProvider defaultTheme="light">
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
-  );
-}
-
-export default App;

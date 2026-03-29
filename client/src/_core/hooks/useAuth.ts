@@ -14,6 +14,8 @@ export function useAuth(options?: UseAuthOptions) {
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
+    // Stop treating network errors as "loading" — resolve quickly
+    retryOnMount: false,
   });
 
   const logoutMutation = trpc.auth.logout.useMutation({
@@ -36,19 +38,20 @@ export function useAuth(options?: UseAuthOptions) {
 
   const state = useMemo(() => ({
     user: meQuery.data ?? null,
-    loading: meQuery.isLoading || logoutMutation.isPending,
+    // Only show loading while actively fetching — errors resolve to "not loading"
+    loading: meQuery.isLoading && !meQuery.isError,
     error: meQuery.error ?? logoutMutation.error ?? null,
     isAuthenticated: Boolean(meQuery.data),
-  }), [meQuery.data, meQuery.error, meQuery.isLoading, logoutMutation.error, logoutMutation.isPending]);
+  }), [meQuery.data, meQuery.error, meQuery.isLoading, meQuery.isError, logoutMutation.error, logoutMutation.isPending]);
 
   useEffect(() => {
     if (!redirectOnUnauthenticated) return;
-    if (meQuery.isLoading || logoutMutation.isPending) return;
+    if (state.loading || logoutMutation.isPending) return;
     if (state.user) return;
     if (typeof window === "undefined") return;
     if (window.location.pathname === redirectPath) return;
     window.location.href = redirectPath;
-  }, [redirectOnUnauthenticated, redirectPath, logoutMutation.isPending, meQuery.isLoading, state.user]);
+  }, [redirectOnUnauthenticated, redirectPath, logoutMutation.isPending, state.loading, state.user]);
 
   return { ...state, refresh: () => meQuery.refetch(), logout };
 }

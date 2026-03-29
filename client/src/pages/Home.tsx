@@ -1,280 +1,274 @@
+import { useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
-import { ShoppingBag, TrendingUp, Users, Zap, ArrowRight, Star } from "lucide-react";
+import {
+  ShoppingBag, TrendingUp, Users, Zap, ArrowRight,
+  Star, Shield, Truck, Link2, BarChart2, CheckCircle, Package,
+} from "lucide-react";
+
+const dashboardPath: Record<string, string> = {
+  admin: "/admin", manager: "/manager", delivery: "/delivery",
+  reader: "/affiliate", developer: "/developer", buyer: "/products",
+};
+
+const features = [
+  {
+    icon: ShoppingBag, color: "#e8a020", bg: "rgba(232,160,32,0.1)",
+    title: "For Buyers", sub: "Seamless Shopping",
+    items: ["Browse curated catalog", "Smart cart management", "Secure Monnify checkout", "Real-time order tracking"],
+  },
+  {
+    icon: Zap, color: "#3b82f6", bg: "rgba(59,130,246,0.1)",
+    title: "For Managers", sub: "Complete Store Control",
+    items: ["Product & inventory management", "Automated commission pricing", "Low-stock alerts", "Category organisation"],
+  },
+  {
+    icon: Truck, color: "#10b981", bg: "rgba(16,185,129,0.1)",
+    title: "For Delivery", sub: "Efficient Logistics",
+    items: ["View assigned orders", "One-tap status updates", "Commission tracking", "Delivery confirmation"],
+  },
+  {
+    icon: Shield, color: "#ef4444", bg: "rgba(239,68,68,0.1)",
+    title: "For Admins", sub: "Full Platform Control",
+    items: ["Sales analytics dashboard", "User & role management", "Revenue reporting", "Platform-wide settings"],
+  },
+  {
+    icon: Link2, color: "#a855f7", bg: "rgba(168,85,247,0.1)",
+    title: "For Affiliates", sub: "Earn Through Referrals",
+    items: ["Generate referral links", "Track conversions live", "Commission history", "Performance metrics"],
+  },
+  {
+    icon: BarChart2, color: "#06b6d4", bg: "rgba(6,182,212,0.1)",
+    title: "For Developers", sub: "Platform Insights",
+    items: ["Platform-wide analytics", "Commission distribution", "Revenue insights", "System monitoring"],
+  },
+];
+
+const benefits = [
+  { icon: CheckCircle, title: "Automated Commissions", desc: "Transparent profit calculation and instant distribution across all stakeholders." },
+  { icon: BarChart2, title: "Real-Time Analytics", desc: "Live dashboards with sales data, inventory tracking, and performance metrics." },
+  { icon: Users, title: "Multi-Role Access", desc: "Six specialised roles with granular permissions and tailored dashboards." },
+  { icon: Truck, title: "GPS Delivery Tracking", desc: "Real-time order status updates for seamless last-mile delivery." },
+  { icon: Shield, title: "Secure Payments", desc: "Integrated Monnify gateway with comprehensive transaction management." },
+  { icon: Link2, title: "Affiliate Network", desc: "Built-in referral system with automatic commission tracking." },
+];
 
 export default function Home() {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
 
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  }
-
-  // Redirect authenticated users to their dashboard
-  if (user) {
-    if (user.role === "admin") {
-      navigate("/admin");
-    } else if (user.role === "manager") {
-      navigate("/manager");
-    } else if (user.role === "delivery") {
-      navigate("/delivery");
-    } else if (user.role === "reader") {
-      navigate("/affiliate");
-    } else if (user.role === "developer") {
-      navigate("/developer");
-    } else {
-      navigate("/products");
-    }
-    return null;
-  }
+  useEffect(() => {
+    if (!loading && user) navigate(dashboardPath[(user as any).role] ?? "/products");
+  }, [user, loading]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShoppingBag className="w-8 h-8 text-blue-600" />
-            <span className="text-2xl font-bold text-slate-900">Sahad Stores</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" asChild>
-              <a href="/auth">Sign Up</a>
-            </Button>
-            <Button asChild>
-              <a href={getLoginUrl()}>Sign In</a>
-            </Button>
+    <div style={{ fontFamily: "'Outfit', sans-serif", background: "#f8f9fc", minHeight: "100vh" }}>
+
+      {/* ── NAV ── */}
+      <nav style={{
+        position: "sticky", top: 0, zIndex: 50,
+        background: "rgba(11,22,40,0.97)", backdropFilter: "blur(16px)",
+        borderBottom: "1px solid rgba(255,255,255,0.07)",
+      }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
+          {/* Logo */}
+          <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+            <div style={{ width: 36, height: 36, background: "linear-gradient(135deg,#e8a020,#f5c842)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <ShoppingBag size={18} color="#0b1628" />
+            </div>
+            <span style={{ color: "#fff", fontWeight: 800, fontSize: 20, letterSpacing: "-0.03em" }}>Sahad <span style={{ color: "#e8a020" }}>Stores</span></span>
+          </a>
+
+          {/* Nav links */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <a href="/products" style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: 500, padding: "8px 14px", borderRadius: 8, textDecoration: "none", transition: "all 0.15s" }}
+              onMouseOver={e => (e.currentTarget.style.color = "#fff")}
+              onMouseOut={e => (e.currentTarget.style.color = "rgba(255,255,255,0.6)")}>
+              Browse
+            </a>
+            <a href="/auth?mode=login" style={{
+              color: "rgba(255,255,255,0.8)", fontSize: 14, fontWeight: 600,
+              padding: "8px 18px", borderRadius: 8, textDecoration: "none",
+              border: "1px solid rgba(255,255,255,0.15)", transition: "all 0.15s",
+            }}
+              onMouseOver={e => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#fff"; }}
+              onMouseOut={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.8)"; }}>
+              Sign In
+            </a>
+            <a href="/auth?mode=signup" style={{
+              background: "linear-gradient(135deg,#e8a020,#f5c842)", color: "#0b1628",
+              fontSize: 14, fontWeight: 700, padding: "8px 20px", borderRadius: 8,
+              textDecoration: "none", boxShadow: "0 4px 16px rgba(232,160,32,0.35)",
+              transition: "all 0.2s",
+            }}
+              onMouseOver={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(232,160,32,0.5)"; }}
+              onMouseOut={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 16px rgba(232,160,32,0.35)"; }}>
+              Sign Up Free
+            </a>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20 text-center">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6 leading-tight">
-            The Complete E-Commerce Platform for Modern Businesses
+      {/* ── HERO ── */}
+      <section style={{
+        background: "linear-gradient(160deg, #0b1628 0%, #132040 55%, #0e1f3d 100%)",
+        padding: "100px 24px 120px", textAlign: "center", position: "relative", overflow: "hidden",
+      }}>
+        {/* Decorative blobs */}
+        <div style={{ position: "absolute", top: -80, left: "10%", width: 400, height: 400, background: "rgba(232,160,32,0.06)", borderRadius: "50%", filter: "blur(80px)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: -60, right: "5%", width: 500, height: 500, background: "rgba(59,130,246,0.05)", borderRadius: "50%", filter: "blur(100px)", pointerEvents: "none" }} />
+
+        <div style={{ maxWidth: 760, margin: "0 auto", position: "relative" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(232,160,32,0.12)", border: "1px solid rgba(232,160,32,0.25)", borderRadius: 99, padding: "6px 16px", marginBottom: 28 }}>
+            <Star size={13} color="#e8a020" fill="#e8a020" />
+            <span style={{ color: "#e8a020", fontSize: 13, fontWeight: 600 }}>Nigeria's Complete E-Commerce Platform</span>
+          </div>
+
+          <h1 style={{ color: "#fff", fontSize: "clamp(36px, 6vw, 64px)", fontWeight: 900, lineHeight: 1.08, letterSpacing: "-0.04em", marginBottom: 24 }}>
+            Manage. Sell. Grow.<br />
+            <span style={{ background: "linear-gradient(90deg,#e8a020,#f5c842)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>All in one platform.</span>
           </h1>
-          <p className="text-xl text-slate-600 mb-8 leading-relaxed">
-            Manage your store, track inventory, process orders, and grow your business with our comprehensive multi-role commerce solution.
+
+          <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "clamp(16px, 2vw, 20px)", lineHeight: 1.65, marginBottom: 44, maxWidth: 560, margin: "0 auto 44px" }}>
+            From product listings to last-mile delivery — Sahad Stores gives every role the tools they need to succeed.
           </p>
-          <div className="flex gap-4 justify-center">
-            <Button size="lg" asChild>
-              <a href={getLoginUrl()}>Get Started</a>
-            </Button>
-            <Button size="lg" variant="outline">
-              Learn More
-            </Button>
+
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <a href="/auth?mode=signup" style={{
+              background: "linear-gradient(135deg,#e8a020,#f5c842)", color: "#0b1628",
+              fontWeight: 800, fontSize: 16, padding: "14px 32px", borderRadius: 12,
+              textDecoration: "none", display: "flex", alignItems: "center", gap: 8,
+              boxShadow: "0 6px 28px rgba(232,160,32,0.45)", transition: "all 0.2s",
+            }}
+              onMouseOver={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 10px 36px rgba(232,160,32,0.55)"; }}
+              onMouseOut={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 6px 28px rgba(232,160,32,0.45)"; }}>
+              Get Started Free <ArrowRight size={18} />
+            </a>
+            <a href="/products" style={{
+              color: "rgba(255,255,255,0.8)", fontWeight: 600, fontSize: 16,
+              padding: "14px 28px", borderRadius: 12, textDecoration: "none",
+              border: "1px solid rgba(255,255,255,0.15)", transition: "all 0.2s",
+              display: "flex", alignItems: "center", gap: 8,
+            }}
+              onMouseOver={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.color = "#fff"; }}
+              onMouseOut={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.8)"; }}>
+              <Package size={18} /> Browse Products
+            </a>
+          </div>
+
+          {/* Stats */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 48, marginTop: 60, flexWrap: "wrap" }}>
+            {[["6", "User Roles"], ["100%", "Real-time Data"], ["₦0", "Setup Cost"]].map(([val, label]) => (
+              <div key={label} style={{ textAlign: "center" }}>
+                <p style={{ color: "#fff", fontSize: 28, fontWeight: 900, letterSpacing: "-0.03em" }}>{val}</p>
+                <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, marginTop: 2 }}>{label}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="bg-white py-20">
-        <div className="container mx-auto px-4">
-          <h2 className="text-4xl font-bold text-center mb-16 text-slate-900">Powerful Features for Every Role</h2>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Buyer Features */}
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader>
-                <ShoppingBag className="w-8 h-8 text-blue-600 mb-2" />
-                <CardTitle>For Buyers</CardTitle>
-                <CardDescription>Seamless Shopping Experience</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-slate-600">
-                <p>• Browse curated product catalog</p>
-                <p>• Easy shopping cart management</p>
-                <p>• Secure checkout with Stripe</p>
-                <p>• Real-time order tracking</p>
-                <p>• Product reviews and ratings</p>
-              </CardContent>
-            </Card>
-
-            {/* Manager Features */}
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader>
-                <Zap className="w-8 h-8 text-amber-600 mb-2" />
-                <CardTitle>For Managers</CardTitle>
-                <CardDescription>Complete Store Control</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-slate-600">
-                <p>• Add and manage products</p>
-                <p>• Real-time inventory tracking</p>
-                <p>• Automated pricing with commissions</p>
-                <p>• Stock alerts and adjustments</p>
-                <p>• Category management</p>
-              </CardContent>
-            </Card>
-
-            {/* Delivery Features */}
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader>
-                <TrendingUp className="w-8 h-8 text-green-600 mb-2" />
-                <CardTitle>For Delivery</CardTitle>
-                <CardDescription>Efficient Logistics</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-slate-600">
-                <p>• View assigned orders</p>
-                <p>• GPS tracking integration</p>
-                <p>• Status updates in real-time</p>
-                <p>• Automatic commission tracking</p>
-                <p>• Performance analytics</p>
-              </CardContent>
-            </Card>
-
-            {/* Admin Features */}
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader>
-                <Users className="w-8 h-8 text-purple-600 mb-2" />
-                <CardTitle>For Admins</CardTitle>
-                <CardDescription>Full Platform Control</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-slate-600">
-                <p>• Comprehensive sales dashboard</p>
-                <p>• User management and roles</p>
-                <p>• Revenue analytics and reports</p>
-                <p>• Commission configuration</p>
-                <p>• Platform-wide settings</p>
-              </CardContent>
-            </Card>
-
-            {/* Affiliate Features */}
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader>
-                <Star className="w-8 h-8 text-yellow-600 mb-2" />
-                <CardTitle>For Affiliates</CardTitle>
-                <CardDescription>Earn Through Referrals</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-slate-600">
-                <p>• Generate referral links</p>
-                <p>• Track conversions</p>
-                <p>• Real-time earnings dashboard</p>
-                <p>• Commission history</p>
-                <p>• Performance metrics</p>
-              </CardContent>
-            </Card>
-
-            {/* Developer Features */}
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader>
-                <Zap className="w-8 h-8 text-indigo-600 mb-2" />
-                <CardTitle>For Developers</CardTitle>
-                <CardDescription>Platform Insights</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-slate-600">
-                <p>• Platform-wide analytics</p>
-                <p>• Commission distribution</p>
-                <p>• Store performance tracking</p>
-                <p>• Revenue insights</p>
-                <p>• System configuration</p>
-              </CardContent>
-            </Card>
+      {/* ── FEATURES ── */}
+      <section style={{ padding: "100px 24px", background: "#f8f9fc" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 60 }}>
+            <p style={{ color: "#e8a020", fontWeight: 700, fontSize: 13, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>Powerful Features</p>
+            <h2 style={{ color: "#0b1628", fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.15 }}>Built for every role in your business</h2>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20 }}>
+            {features.map(({ icon: Icon, color, bg, title, sub, items }) => (
+              <div key={title} style={{
+                background: "#fff", borderRadius: 20, padding: 28,
+                border: "1px solid #eaecf0", transition: "all 0.25s",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+              }}
+                onMouseOver={e => { const el = e.currentTarget; el.style.transform = "translateY(-4px)"; el.style.boxShadow = "0 12px 40px rgba(0,0,0,0.1)"; el.style.borderColor = color; }}
+                onMouseOut={e => { const el = e.currentTarget; el.style.transform = ""; el.style.boxShadow = "0 1px 4px rgba(0,0,0,0.04)"; el.style.borderColor = "#eaecf0"; }}>
+                <div style={{ width: 48, height: 48, background: bg, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18 }}>
+                  <Icon size={22} color={color} />
+                </div>
+                <h3 style={{ color: "#0b1628", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{title}</h3>
+                <p style={{ color: "#6b7280", fontSize: 13, marginBottom: 18 }}>{sub}</p>
+                <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 9 }}>
+                  {items.map((item) => (
+                    <li key={item} style={{ display: "flex", alignItems: "center", gap: 8, color: "#374151", fontSize: 14 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: color, flexShrink: 0 }} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Key Benefits Section */}
-      <section className="container mx-auto px-4 py-20">
-        <h2 className="text-4xl font-bold text-center mb-16 text-slate-900">Why Choose Sahad Stores?</h2>
-        
-        <div className="grid md:grid-cols-2 gap-12">
-          <div className="space-y-6">
-            <div className="flex gap-4">
-              <div className="flex-shrink-0">
-                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-600 text-white">
-                  <ArrowRight className="w-6 h-6" />
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">Automated Commission System</h3>
-                <p className="text-slate-600">Transparent profit calculation and automatic commission distribution for all stakeholders.</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="flex-shrink-0">
-                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-600 text-white">
-                  <ArrowRight className="w-6 h-6" />
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">Real-Time Analytics</h3>
-                <p className="text-slate-600">Comprehensive dashboards with live sales data, inventory tracking, and performance metrics.</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="flex-shrink-0">
-                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-600 text-white">
-                  <ArrowRight className="w-6 h-6" />
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">Multi-Role Access Control</h3>
-                <p className="text-slate-600">Six distinct user roles with granular permissions and specialized dashboards.</p>
-              </div>
-            </div>
+      {/* ── BENEFITS ── */}
+      <section style={{ padding: "100px 24px", background: "linear-gradient(160deg,#0b1628,#132040)" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 60 }}>
+            <p style={{ color: "#e8a020", fontWeight: 700, fontSize: 13, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>Why Sahad Stores</p>
+            <h2 style={{ color: "#fff", fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 800, letterSpacing: "-0.03em" }}>Everything your business needs</h2>
           </div>
-
-          <div className="space-y-6">
-            <div className="flex gap-4">
-              <div className="flex-shrink-0">
-                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-600 text-white">
-                  <ArrowRight className="w-6 h-6" />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
+            {benefits.map(({ icon: Icon, title, desc }) => (
+              <div key={title} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 18, padding: 28, transition: "all 0.2s" }}
+                onMouseOver={e => { e.currentTarget.style.background = "rgba(232,160,32,0.08)"; e.currentTarget.style.borderColor = "rgba(232,160,32,0.3)"; }}
+                onMouseOut={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}>
+                <div style={{ width: 44, height: 44, background: "rgba(232,160,32,0.12)", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+                  <Icon size={20} color="#e8a020" />
                 </div>
+                <h3 style={{ color: "#fff", fontSize: 17, fontWeight: 700, marginBottom: 8 }}>{title}</h3>
+                <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 14, lineHeight: 1.6 }}>{desc}</p>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">GPS Delivery Tracking</h3>
-                <p className="text-slate-600">Real-time location tracking and order status updates for seamless delivery management.</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="flex-shrink-0">
-                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-600 text-white">
-                  <ArrowRight className="w-6 h-6" />
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">Secure Payment Processing</h3>
-                <p className="text-slate-600">Integrated Stripe payment gateway with comprehensive transaction management.</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="flex-shrink-0">
-                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-600 text-white">
-                  <ArrowRight className="w-6 h-6" />
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">Affiliate Commission System</h3>
-                <p className="text-slate-600">Track referrals, manage commissions, and grow your network with built-in affiliate tools.</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="bg-blue-600 text-white py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to Transform Your E-Commerce Business?</h2>
-          <p className="text-lg mb-8 text-blue-100">Join thousands of businesses using Sahad Stores to manage their operations efficiently.</p>
-          <Button size="lg" variant="secondary" asChild>
-            <a href={getLoginUrl()}>Sign In Now</a>
-          </Button>
+      {/* ── CTA ── */}
+      <section style={{ padding: "80px 24px", background: "#fff", textAlign: "center" }}>
+        <div style={{ maxWidth: 600, margin: "0 auto" }}>
+          <div style={{ width: 64, height: 64, background: "linear-gradient(135deg,#e8a020,#f5c842)", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px" }}>
+            <ShoppingBag size={28} color="#0b1628" />
+          </div>
+          <h2 style={{ color: "#0b1628", fontSize: "clamp(26px, 4vw, 40px)", fontWeight: 800, letterSpacing: "-0.03em", marginBottom: 16 }}>Ready to get started?</h2>
+          <p style={{ color: "#6b7280", fontSize: 17, lineHeight: 1.65, marginBottom: 36 }}>
+            Join businesses across Nigeria using Sahad Stores to manage their operations efficiently.
+          </p>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <a href="/auth?mode=signup" style={{
+              background: "linear-gradient(135deg,#e8a020,#f5c842)", color: "#0b1628",
+              fontWeight: 800, fontSize: 16, padding: "14px 32px", borderRadius: 12,
+              textDecoration: "none", boxShadow: "0 6px 24px rgba(232,160,32,0.4)",
+              display: "flex", alignItems: "center", gap: 8, transition: "all 0.2s",
+            }}
+              onMouseOver={e => { e.currentTarget.style.transform = "translateY(-2px)"; }}
+              onMouseOut={e => { e.currentTarget.style.transform = ""; }}>
+              Create Free Account <ArrowRight size={18} />
+            </a>
+            <a href="/auth?mode=login" style={{
+              color: "#374151", fontWeight: 600, fontSize: 16,
+              padding: "14px 28px", borderRadius: 12, textDecoration: "none",
+              border: "2px solid #eaecf0", transition: "all 0.2s",
+            }}
+              onMouseOver={e => { e.currentTarget.style.borderColor = "#e8a020"; e.currentTarget.style.color = "#e8a020"; }}
+              onMouseOut={e => { e.currentTarget.style.borderColor = "#eaecf0"; e.currentTarget.style.color = "#374151"; }}>
+              Sign In
+            </a>
+          </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-slate-900 text-slate-400 py-8">
-        <div className="container mx-auto px-4 text-center">
-          <p>&copy; 2026 Sahad Stores. All rights reserved.</p>
+      {/* ── FOOTER ── */}
+      <footer style={{ background: "#0b1628", padding: "28px 24px", textAlign: "center", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 10 }}>
+          <div style={{ width: 28, height: 28, background: "linear-gradient(135deg,#e8a020,#f5c842)", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <ShoppingBag size={13} color="#0b1628" />
+          </div>
+          <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: 600 }}>Sahad Stores</span>
         </div>
+        <p style={{ color: "rgba(255,255,255,0.2)", fontSize: 12 }}>© 2026 Sahad Stores. All rights reserved.</p>
       </footer>
     </div>
   );

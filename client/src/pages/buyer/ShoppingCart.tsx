@@ -6,7 +6,7 @@ import { useLocation } from "wouter";
 import { Trash2, Plus, Minus, ShoppingCart, ArrowRight, ArrowLeft, Package } from "lucide-react";
 import { toast } from "sonner";
 
-export default function ShoppingCart() {
+export default function ShoppingCartPage() {
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
 
@@ -27,8 +27,8 @@ export default function ShoppingCart() {
     onError: (e) => toast.error(e.message),
   });
 
-  const items: any[] = cartItems ?? [];
-  const subtotal = items.reduce((sum, item) => sum + (item.product?.finalPrice ?? 0) * item.quantity, 0);
+  const items: any[] = (cartItems as any[]) ?? [];
+  const subtotal = items.reduce((sum, item) => sum + (item.productId?.finalPrice ?? 0) * item.quantity, 0);
   const shipping = subtotal > 50000 ? 0 : 2000;
   const tax = Math.round(subtotal * 0.075);
   const total = subtotal + shipping + tax;
@@ -70,56 +70,96 @@ export default function ShoppingCart() {
             <h1 className="text-3xl font-bold text-slate-900">Shopping Cart</h1>
             <p className="text-slate-500">{items.length} item{items.length !== 1 ? "s" : ""}</p>
           </div>
-          <Button variant="ghost" className="text-red-500 hover:bg-red-50" onClick={() => clearMutation.mutate()}>
+          <Button
+            variant="ghost"
+            className="text-red-500 hover:bg-red-50"
+            onClick={() => clearMutation.mutate()}
+            disabled={clearMutation.isPending}
+          >
             Clear All
           </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
-            {items.map((item: any) => (
-              <Card key={item._id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
-                <CardContent className="p-5">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
-                      {item.product?.images?.[0] ? <img src={item.product.images[0]} className="w-full h-full object-cover rounded-xl" alt="" /> : "📦"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-slate-900 truncate">{item.product?.name ?? "Product"}</h3>
-                      <p className="text-sm text-slate-500">{item.product?.categoryId?.name ?? ""}</p>
-                      <p className="font-bold text-blue-600 mt-1">₦{((item.product?.finalPrice ?? 0) * item.quantity).toLocaleString()}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-3">
-                      <button onClick={() => removeMutation.mutate({ cartItemId: item._id })} className="text-slate-400 hover:text-red-500 transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                      <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
-                        <button onClick={() => updateQtyMutation.mutate({ cartItemId: item._id, quantity: item.quantity - 1 })} className="px-3 py-1.5 hover:bg-slate-100" disabled={item.quantity <= 1}>
-                          <Minus className="w-3 h-3" />
+            {items.map((item: any) => {
+              const product = item.productId ?? {};
+              return (
+                <Card key={item._id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
+                        {product.images?.[0]
+                          ? <img src={product.images[0]} className="w-full h-full object-cover rounded-xl" alt="" />
+                          : "📦"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-slate-900 truncate">{product.name ?? "Product"}</h3>
+                        <p className="text-sm text-slate-500">{product.categoryId?.name ?? ""}</p>
+                        <p className="font-bold text-blue-600 mt-1">
+                          ₦{((product.finalPrice ?? 0) * item.quantity).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-3">
+                        <button
+                          onClick={() => removeMutation.mutate({ cartItemId: item._id })}
+                          className="text-slate-400 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
-                        <span className="px-3 py-1.5 font-semibold text-sm border-x border-slate-200">{item.quantity}</span>
-                        <button onClick={() => updateQtyMutation.mutate({ cartItemId: item._id, quantity: item.quantity + 1 })} className="px-3 py-1.5 hover:bg-slate-100">
-                          <Plus className="w-3 h-3" />
-                        </button>
+                        <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
+                          <button
+                            onClick={() => updateQtyMutation.mutate({ cartItemId: item._id, quantity: item.quantity - 1 })}
+                            className="px-3 py-1.5 hover:bg-slate-100 disabled:opacity-50"
+                            disabled={item.quantity <= 1 || updateQtyMutation.isPending}
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="px-3 py-1.5 font-semibold text-sm border-x border-slate-200 min-w-[2rem] text-center">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() => updateQtyMutation.mutate({ cartItemId: item._id, quantity: item.quantity + 1 })}
+                            className="px-3 py-1.5 hover:bg-slate-100 disabled:opacity-50"
+                            disabled={updateQtyMutation.isPending}
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
 
+          {/* Order Summary */}
           <div>
             <Card className="border-0 shadow-md sticky top-4">
               <CardHeader><CardTitle>Order Summary</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between text-slate-600"><span>Subtotal</span><span>₦{subtotal.toLocaleString()}</span></div>
-                  <div className="flex justify-between text-slate-600"><span>Shipping</span><span>{shipping === 0 ? <Badge variant="secondary">Free</Badge> : `₦${shipping.toLocaleString()}`}</span></div>
-                  <div className="flex justify-between text-slate-600"><span>VAT (7.5%)</span><span>₦{tax.toLocaleString()}</span></div>
-                  <div className="border-t pt-2 flex justify-between font-bold text-base"><span>Total</span><span>₦{total.toLocaleString()}</span></div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>Subtotal</span><span>₦{subtotal.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>Shipping</span>
+                    <span>{shipping === 0 ? <Badge variant="secondary">Free</Badge> : `₦${shipping.toLocaleString()}`}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>VAT (7.5%)</span><span>₦{tax.toLocaleString()}</span>
+                  </div>
+                  <div className="border-t pt-2 flex justify-between font-bold text-base">
+                    <span>Total</span><span>₦{total.toLocaleString()}</span>
+                  </div>
                 </div>
-                {subtotal < 50000 && <p className="bg-blue-50 text-blue-700 text-xs rounded-lg p-3">Add ₦{(50000 - subtotal).toLocaleString()} more for free shipping!</p>}
+                {subtotal < 50000 && (
+                  <p className="bg-blue-50 text-blue-700 text-xs rounded-lg p-3">
+                    Add ₦{(50000 - subtotal).toLocaleString()} more for free shipping!
+                  </p>
+                )}
                 <Button className="w-full gap-2" size="lg" onClick={() => navigate("/checkout")}>
                   Proceed to Checkout <ArrowRight className="w-4 h-4" />
                 </Button>
