@@ -1,42 +1,41 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');
+@theme {
+  --color-brand-navy: #0b1628;
+  --color-brand-navy-mid: #132040;
+  --color-brand-gold: #e8a020;
+  --color-brand-gold-light: #f5c842;
+  --color-brand-gold-pale: rgba(232,160,32,0.12);
+  --color-brand-green: #10b981;
+  --color-brand-red: #ef4444;
 
-:root {
-  --brand-navy: #0b1628;
-  --brand-navy-mid: #132040;
-  --brand-gold: #e8a020;
-  --brand-gold-light: #f5c842;
-  --brand-gold-pale: rgba(232,160,32,0.12);
-  --brand-green: #10b981;
-  --brand-red: #ef4444;
   --font-display: 'Outfit', sans-serif;
   --font-body: 'Outfit', sans-serif;
 
   /* shadcn tokens */
-  --background: 0 0% 100%;
-  --foreground: 222 47% 11%;
-  --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-  --primary: 38 85% 50%;
-  --primary-foreground: 222 47% 11%;
-  --secondary: 214 32% 91%;
-  --secondary-foreground: 222 47% 11%;
-  --muted: 214 32% 96%;
-  --muted-foreground: 215 16% 47%;
-  --accent: 38 85% 50%;
-  --accent-foreground: 222 47% 11%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 38 85% 50%;
+  --color-background: hsl(0 0% 100%);
+  --color-foreground: hsl(222 47% 11%);
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(222 47% 11%);
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(222 47% 11%);
+  --color-primary: hsl(38 85% 50%);
+  --color-primary-foreground: hsl(222 47% 11%);
+  --color-secondary: hsl(214 32% 91%);
+  --color-secondary-foreground: hsl(222 47% 11%);
+  --color-muted: hsl(214 32% 96%);
+  --color-muted-foreground: hsl(215 16% 47%);
+  --color-accent: hsl(38 85% 50%);
+  --color-accent-foreground: hsl(222 47% 11%);
+  --color-destructive: hsl(0 84% 60%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-border: hsl(214 32% 91%);
+  --color-input: hsl(214 32% 91%);
+  --color-ring: hsl(38 85% 50%);
   --radius: 0.75rem;
 }
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');
 
 * { box-sizing: border-box; }
 
@@ -48,6 +47,9 @@ body {
 }
 
 /* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
 html { scroll-behavior: smooth; }
 
 /* Custom scrollbar */
