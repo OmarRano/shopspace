@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -34,8 +35,6 @@
   --color-ring: hsl(38 85% 50%);
   --radius: 0.75rem;
 }
-
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');
 
 * { box-sizing: border-box; }
 
