@@ -1,57 +1,118 @@
-import { trpc } from "@/lib/trpc";
-import { TRPCClientError } from "@trpc/client";
-import { useCallback, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 
 type UseAuthOptions = {
   redirectOnUnauthenticated?: boolean;
   redirectPath?: string;
 };
 
+type DemoUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  phone?: string;
+  createdAt?: string;
+  isAffiliate?: boolean;
+};
+
+const DEMO_USERS: Record<string, DemoUser> = {
+  admin: {
+    id: "admin-demo",
+    name: "Amina Oladipo",
+    email: "admin@demo.sahadstores.com",
+    role: "admin",
+    phone: "+234 812 345 6789",
+    createdAt: "2024-01-15",
+    isAffiliate: false,
+  },
+  manager: {
+    id: "manager-demo",
+    name: "Daniel Chukwu",
+    email: "manager@demo.sahadstores.com",
+    role: "manager",
+    phone: "+234 809 123 4567",
+    createdAt: "2024-02-10",
+    isAffiliate: false,
+  },
+  delivery: {
+    id: "delivery-demo",
+    name: "Precious Eze",
+    email: "delivery@demo.sahadstores.com",
+    role: "delivery",
+    phone: "+234 901 234 5678",
+    createdAt: "2024-03-05",
+    isAffiliate: false,
+  },
+  reader: {
+    id: "affiliate-demo",
+    name: "Femi Adeyemi",
+    email: "affiliate@demo.sahadstores.com",
+    role: "reader",
+    phone: "+234 803 456 7890",
+    createdAt: "2024-04-02",
+    isAffiliate: true,
+  },
+  developer: {
+    id: "developer-demo",
+    name: "Ngozi Okafor",
+    email: "developer@demo.sahadstores.com",
+    role: "developer",
+    phone: "+234 807 654 3210",
+    createdAt: "2024-05-20",
+    isAffiliate: false,
+  },
+  buyer: {
+    id: "buyer-demo",
+    name: "Peter Nwosu",
+    email: "buyer@demo.sahadstores.com",
+    role: "buyer",
+    phone: "+234 805 123 4567",
+    createdAt: "2024-06-01",
+    isAffiliate: false,
+  },
+};
+
+const getDemoRole = (pathname: string) => {
+  if (pathname.startsWith("/admin")) return "admin";
+  if (pathname.startsWith("/manager")) return "manager";
+  if (pathname.startsWith("/delivery")) return "delivery";
+  if (pathname.startsWith("/affiliate")) return "reader";
+  if (pathname.startsWith("/developer")) return "developer";
+  if (
+    pathname.startsWith("/buyer") ||
+    pathname.startsWith("/cart") ||
+    pathname.startsWith("/orders") ||
+    pathname.startsWith("/checkout") ||
+    pathname.startsWith("/profile")
+  ) {
+    return "buyer";
+  }
+  return null;
+};
+
 export function useAuth(options?: UseAuthOptions) {
   const { redirectOnUnauthenticated = false, redirectPath = "/auth" } = options ?? {};
-  const utils = trpc.useUtils();
+  const pathname = typeof window === "undefined" ? "/" : window.location.pathname;
+  const role = getDemoRole(pathname);
+  const user = role ? DEMO_USERS[role] : null;
 
-  const meQuery = trpc.auth.me.useQuery(undefined, {
-    retry: false,
-    refetchOnWindowFocus: false,
-    // Stop treating network errors as "loading" — resolve quickly
-    retryOnMount: false,
-  });
+  const state = useMemo(
+    () => ({
+      user,
+      loading: false,
+      error: null,
+      isAuthenticated: Boolean(user),
+    }),
+    [user]
+  );
 
-  const logoutMutation = trpc.auth.logout.useMutation({
-    onSuccess: () => {
-      utils.auth.me.setData(undefined, null);
+  return {
+    ...state,
+    refresh: async () => state,
+    logout: async () => {
+      if (typeof window !== "undefined") {
+        window.location.href = "/";
+      }
     },
-  });
-
-  const logout = useCallback(async () => {
-    try {
-      await logoutMutation.mutateAsync();
-    } catch (error: unknown) {
-      if (error instanceof TRPCClientError && error.data?.code === "UNAUTHORIZED") return;
-      throw error;
-    } finally {
-      utils.auth.me.setData(undefined, null);
-      await utils.auth.me.invalidate();
-    }
-  }, [logoutMutation, utils]);
-
-  const state = useMemo(() => ({
-    user: meQuery.data ?? null,
-    // Only show loading while actively fetching — errors resolve to "not loading"
-    loading: meQuery.isLoading && !meQuery.isError,
-    error: meQuery.error ?? logoutMutation.error ?? null,
-    isAuthenticated: Boolean(meQuery.data),
-  }), [meQuery.data, meQuery.error, meQuery.isLoading, meQuery.isError, logoutMutation.error, logoutMutation.isPending]);
-
-  useEffect(() => {
-    if (!redirectOnUnauthenticated) return;
-    if (state.loading || logoutMutation.isPending) return;
-    if (state.user) return;
-    if (typeof window === "undefined") return;
-    if (window.location.pathname === redirectPath) return;
-    window.location.href = redirectPath;
-  }, [redirectOnUnauthenticated, redirectPath, logoutMutation.isPending, state.loading, state.user]);
-
-  return { ...state, refresh: () => meQuery.refetch(), logout };
+  };
 }
